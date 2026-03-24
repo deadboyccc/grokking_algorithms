@@ -1,77 +1,81 @@
-// Граф
-private val graph: MutableMap<String, MutableMap<String, Double>> = HashMap()
+// The graph representing nodes and the distances to their neighbors
+private val graph = mapOf(
+    "start" to mapOf("a" to 6.0, "b" to 2.0),
+    "a" to mapOf("fin" to 1.0),
+    "b" to mapOf("a" to 3.0, "fin" to 5.0),
+    "fin" to emptyMap()
+)
 
-// Список отслеживания обработанных узлов
-private val processed: MutableList<String> = ArrayList()
+// Set to keep track of nodes we have already processed
+private val processed = mutableSetOf<String>()
 
 fun main() {
-    graph["start"] = HashMap()
-    graph["start"]!!["a"] = 6.0
-    graph["start"]!!["b"] = 2.0
-    graph["a"] = HashMap()
-    graph["a"]!!["fin"] = 1.0
-    graph["b"] = HashMap()
-    graph["b"]!!["a"] = 3.0
-    graph["b"]!!["fin"] = 5.0
-    graph["fin"] = HashMap()
+    // Distance from the start to each node
+    val costs = mutableMapOf(
+        "a" to 6.0,
+        "b" to 2.0,
+        "fin" to Double.POSITIVE_INFINITY
+    )
 
-    // Стоимость узлов
-    val costs: MutableMap<String, Double> = HashMap()
-    costs["a"] = 6.0
-    costs["b"] = 2.0
-    costs["fin"] = Double.POSITIVE_INFINITY
-
-    // Таблица родителей
-    val parents: MutableMap<String, String?> = HashMap()
-    parents["a"] = "start"
-    parents["b"] = "start"
-    parents["fin"] = null
-
+    // Table mapping nodes to their parent nodes
+    val parents = mutableMapOf<String, String?>(
+        "a" to "start",
+        "b" to "start",
+        "fin" to null
+    )
 
     println("Cost from the start to each node:")
     println(dijkstraAlgorithm(costs, parents))
 }
 
-fun dijkstraAlgorithm(costs: MutableMap<String, Double>,
-                      parents: MutableMap<String, String?>): MutableMap<String, Double> {
+fun dijkstraAlgorithm(
+    costs: MutableMap<String, Double>,
+    parents: MutableMap<String, String?>
+): Map<String, Double> {
 
     var node = findLowestCostNode(costs)
+    
     while (node != null) {
-        val cost = costs[node]
-        // Перебрать всех соседей текущего узла
-        val neighbors: Map<String, Double> = graph[node]!!
-        for (n in neighbors.keys) {
-            val newCost = cost!! + neighbors[n]!!
-            // Если к соседу можно быстрее добраться через текущий узел...
-            if (costs[n]!! > newCost) {
-                // ... обновить стоимость для этого узла
-                costs[n] = newCost
-                // Этот узел становится новым родителем для соседа
-                parents[n] = node
+        val cost = costs[node] ?: Double.POSITIVE_INFINITY
+        val neighbors = graph[node] ?: emptyMap()
+        
+        // Check all neighbors of the current node
+        for ((neighbor, neighborCost) in neighbors) {
+            val newCost = cost + neighborCost
+            val currentNeighborCost = costs[neighbor] ?: Double.POSITIVE_INFINITY
+            
+            // If it's cheaper to reach this neighbor through the current node...
+            if (currentNeighborCost > newCost) {
+                // ...update the cost for this node
+                costs[neighbor] = newCost
+                // ...and mark this node as the new parent for the neighbor
+                parents[neighbor] = node
             }
         }
-        // Узел помечается как обработанный
+        
+        // Mark the node as processed so we don't evaluate it again
         processed.add(node)
-
-        // Найти следующий узел для обработки и повторить цикл
+        
+        // Find the next node to process and repeat
         node = findLowestCostNode(costs)
     }
-    return  costs // { a: 5, b: 2, fin: 6 }
+    
+    return costs // Expected output: {a=5.0, b=2.0, fin=6.0}
 }
 
 private fun findLowestCostNode(costs: Map<String, Double>): String? {
     var lowestCost = Double.POSITIVE_INFINITY
     var lowestCostNode: String? = null
 
-    // Перебрать все узлы
-    for ((key, cost) in costs) {
-        // Если это узел с наименьшей стоимостью из уже виденных и
-        // он еще не был обработан...
-        if (cost < lowestCost && !processed.contains(key)) {
-            // ... он назначается новым узлом с наименьшей стоимостью
+    // Iterate through each node
+    for ((node, cost) in costs) {
+        // If it's the lowest cost seen so far and hasn't been processed yet...
+        if (cost < lowestCost && node !in processed) {
+            // ...set it as the new lowest-cost node
             lowestCost = cost
-            lowestCostNode = key
+            lowestCostNode = node
         }
     }
+    
     return lowestCostNode
 }
